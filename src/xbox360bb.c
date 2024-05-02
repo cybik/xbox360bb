@@ -86,10 +86,18 @@
 #define XTYPE_XBOXONE     3
 #define XTYPE_UNKNOWN     4
 
+// Quirky Controller Types
+
+// SceneIt Party Game Controller Set
+#define XTYPE_360_SCENEIT 0x11
+
 #define DRIVER_DESC "XBox360 Big Button (Scene It) Driver"
 
 /* No idea where this came from, it's copped from xpad.c */
 #define XBOX360BB_PKT_LEN 32
+
+//#define PR_KERN_LOG pr_info
+#define PR_KERN_LOG pr_debug
 
 /*
  * This might be overkill at this point.  I'm honestly not really
@@ -101,10 +109,11 @@ static const struct xbox360bb_dev_options {
 	char *name;
 	u8 xtype;
 } xbox360bb_dev_options[] = {
-	{ 0x045e, 0x02a0, "Microsoft XBox360 Big Button IR", XTYPE_XBOX360 },
+	{ 0x045e, 0x02a0, "Microsoft XBox360 Big Button IR", XTYPE_360_SCENEIT },
 	{ },
 };
 
+// TODO: absolute x/y or dpad? maybe a module load option?
 static const signed short xbox360bb_abs[] = {
 	ABS_X,
 	ABS_Y,
@@ -137,6 +146,7 @@ static const signed short xbox360bb_btn[] = {
 	 */
 	BTN_THUMBR, /* 0x08 */
 	/* The big X, logo button.  xpad uses BTN_MODE. */
+	/* Also known as the Guide or Dashboard button. */
 	BTN_MODE,   /* 0x04 */
 	/* 0x02 and 0x01 seem to be unused. */
 	/* end marker */
@@ -242,7 +252,7 @@ static void xbox360bb_keyup(unsigned long user_data)
 	struct xbox360bb_controller *controller =
 		(struct xbox360bb_controller *)user_data;
 #endif
-	pr_debug("timer callback for controller %d\n",
+	PR_KERN_LOG("timer callback for controller %d\n",
 		controller->controller_number);
 
 	/* FIXME: Is there a quick, simple way to keyup all currently
@@ -289,7 +299,7 @@ static void xbox360bb_usb_process_packet(struct xbox360bb *xbox360bb, u16 cmd,
 	}
 	controller = &(xbox360bb->controller[data[2]]);
 
-	pr_debug("%d ms currently remaining on timer\n",
+	PR_KERN_LOG("%d ms currently remaining on timer\n",
 		 jiffies_to_msecs(controller->timer_keyup.expires-jiffies));
 
 	/* Arm the timer (or move it forward).  In a quick test, 188
@@ -302,7 +312,7 @@ static void xbox360bb_usb_process_packet(struct xbox360bb *xbox360bb, u16 cmd,
 	 * mostly. */
 	if (controller->last_report[0] == data[3] &&
 	    controller->last_report[1] == data[4]) {
-		pr_debug("Ignoring duplicate report\n");
+		PR_KERN_LOG("Ignoring duplicate report\n");
 		return;
 	}
 	controller->last_report[0] = data[3];
@@ -355,11 +365,11 @@ static void xbox360bb_usb_irq_in(struct urb *urb)
 	case -ENOENT:
 	case -ESHUTDOWN:
 		/* this urb is terminated, clean up */
-		pr_debug("%s - urb shutting down with status: %d",
+		PR_KERN_LOG("%s - urb shutting down with status: %d",
 			 __func__, status);
 		return;
 	default:
-		pr_debug("%s - nonzero urb status received: %d",
+		PR_KERN_LOG("%s - nonzero urb status received: %d",
 			 __func__, status);
 		goto exit;
 	}
@@ -384,15 +394,15 @@ static int xbox360bb_input_open(struct input_dev *idev)
 	int error;
 
 	if (xbox360bb->idev_open_count == 0) {
-		pr_debug("In open, submitting URB\n");
+		PR_KERN_LOG("In open, submitting URB\n");
 		error = usb_submit_urb(xbox360bb->irq_in, GFP_KERNEL);
 		if (error) {
 			pr_warn("...error = %d\n", error);
 			return -EIO;
 		}
-		pr_debug("...passed\n");
+		PR_KERN_LOG("...passed\n");
 	} else {
-		pr_debug("Not trying to submit URB; it should already be running (idev_open_count=%d)\n",
+		PR_KERN_LOG("Not trying to submit URB; it should already be running (idev_open_count=%d)\n",
 			xbox360bb->idev_open_count);
 	}
 	xbox360bb->idev_open_count++;
@@ -409,10 +419,10 @@ static void xbox360bb_input_close(struct input_dev *idev)
 	struct xbox360bb *xbox360bb = controller->receiver;
 
 	if (xbox360bb->idev_open_count == 1) {
-		pr_debug("In close, killing urb\n");
+		PR_KERN_LOG("In close, killing urb\n");
 		usb_kill_urb(xbox360bb->irq_in);
 	} else {
-		pr_debug("In close, not killing urb, open count=%d\n",
+		PR_KERN_LOG("In close, not killing urb, open count=%d\n",
 			 xbox360bb->idev_open_count);
 	}
 	xbox360bb->idev_open_count--;
@@ -493,7 +503,7 @@ static int xbox360bb_usb_probe(struct usb_interface *intf,
 		struct xbox360bb_controller *controller =
 			&(xbox360bb->controller[controller_i]);
 
-		pr_debug("making input dev %d\n", controller_i);
+		PR_KERN_LOG("making input dev %d\n", controller_i);
 
 		controller->controller_number = controller_i;
 		controller->receiver = xbox360bb;
@@ -525,7 +535,7 @@ static int xbox360bb_usb_probe(struct usb_interface *intf,
 		strlcat(name, xbox360bb_controller_colors[controller_i],
 			name_size);
 
-		pr_debug("... name='%s'\n", name);
+		PR_KERN_LOG("... name='%s'\n", name);
 		input_dev->name = name;
 
 		/* Right, now need to do the same with phys, more or less. */
@@ -535,13 +545,17 @@ static int xbox360bb_usb_probe(struct usb_interface *intf,
 			goto fail4;
 		usb_make_path(udev, phys, 64);
 		snprintf(phys, 64, "%s/input%d", phys, controller_i);
-		pr_debug("... phys='%s'\n", phys);
+		PR_KERN_LOG("... phys='%s'\n", phys);
 		input_dev->phys = phys;
 
 		/* Static data */
 		input_dev->dev.parent = &intf->dev;
-		pr_debug("... input_set_drvdata\n");
+		PR_KERN_LOG("... input_set_drvdata\n");
 		input_set_drvdata(input_dev, controller);
+
+		// TODO: Look into xpad's use of input_set_capability
+		// NOTE: Is input_set_capability "the new" evbit / set_bit?
+
 		/* Set the input device vendor/product/version from
 		   the usb ones. */
 		usb_to_input_id(udev, &input_dev->id);
@@ -561,9 +575,9 @@ static int xbox360bb_usb_probe(struct usb_interface *intf,
 					     -1, 1, 0, 0);
 		}
 
-		pr_debug("... input_register_device\n");
+		PR_KERN_LOG("... input_register_device\n");
 		error = input_register_device(input_dev);
-		pr_debug("returned from input_register_device, error=%d\n",
+		PR_KERN_LOG("returned from input_register_device, error=%d\n",
 			error);
 
 		if (error)

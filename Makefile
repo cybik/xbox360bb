@@ -1,22 +1,30 @@
-obj-m := xbox360bb.o
+obj-m := \
+	./src/xbox360bb.o
+
 CURRENT := $(shell uname -r)
-KDIR := /lib/modules/$(CURRENT)/build
 PWD := $(shell pwd)
-MDIR := drivers/misc
-DEST := /lib/modules/$(CURRENT)/kernel/$(MDIR)
+KDIR := /lib/modules/$(CURRENT)/build
+
+all: default
 
 default:
 	$(MAKE) -C $(KDIR) M=$(PWD) modules
 
 install:
-	install -g0 -o0 xbox360bb.ko $(DEST)
-	/sbin/depmod -a
+	make -C $(KDIR) M=$(PWD) modules_install
 
 clean:
-	rm -f modules.order Module.symvers
-	rm -f xbox360bb.ko xbox360bb.mod.c xbox360bb.mod.o xbox360bb.o
-	rm -f .xbox360bb.ko.cmd .xbox360bb.mod.o.cmd .xbox360bb.o.cmd
-	rm -fr .tmp_versions
+	make -C $(KDIR) M=$(PWD) clean
 
-	rm -f *~
+# Package version and name from dkms.conf
+# Copied over from other works
+VER := $(shell sed -n 's/^PACKAGE_VERSION=\([^\n]*\)/\1/p' dkms.conf 2>&1 /dev/null)
+MODULE_NAME := $(shell sed -n 's/^PACKAGE_NAME=\([^\n]*\)/\1/p' dkms.conf 2>&1 /dev/null)
 
+dkmsinstall:
+	cp -R . /usr/src/$(MODULE_NAME)-$(VER)
+	dkms install -m $(MODULE_NAME) -v $(VER)
+
+dkmsremove:
+	dkms remove -m $(MODULE_NAME) -v $(VER) --all
+	rm -rf /usr/src/$(MODULE_NAME)-$(VER)
