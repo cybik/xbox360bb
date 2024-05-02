@@ -1,9 +1,9 @@
 /*
- * X-Box 360 big-button controller driver
+ * XBox360 big-button controller driver
  *
  * This is for the controllers that come with game-show style games
- * for the xbox 360.  They consist of an IR reciver with a USB cable,
- * marked on the bottom "Microsoft X-Box 360 Big Button IR" (fixme:
+ * for the XBox360.  They consist of an IR reciver with a USB cable,
+ * marked on the bottom "Microsoft XBox360 Big Button IR" (fixme:
  * verify), and four seperate controller devices, each with a
  * different colour scheme: green, red, blue, and yellow (in that
  * order).
@@ -63,6 +63,11 @@
  *   ref: <https://issues.asterisk.org/print_bug_page.php?bug_id=17383>
  * - Build fix for kernel >= 3.2.0 due to module handling differences
  * - Improved code style
+ * 
+ * This is a FURTHER MODIFIED version by Renaud Lepage with the following:
+ * - Simple style fixes
+ * - Kernel 6.8.x Compatibility
+ * - TODO: Steam support
  *
  */
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
@@ -74,7 +79,14 @@
 #include <linux/export.h>
 #include <linux/module.h>
 
-#define DRIVER_DESC "X-Box 360 Big Button (Scene It) driver"
+// Direct import from xpad
+#define XTYPE_XBOX        0
+#define XTYPE_XBOX360     1
+#define XTYPE_XBOX360W    2
+#define XTYPE_XBOXONE     3
+#define XTYPE_UNKNOWN     4
+
+#define DRIVER_DESC "XBox360 Big Button (Scene It) Driver"
 
 /* No idea where this came from, it's copped from xpad.c */
 #define XBOX360BB_PKT_LEN 32
@@ -87,8 +99,9 @@ static const struct xbox360bb_dev_options {
 	u16 idVendor;
 	u16 idProduct;
 	char *name;
+	u8 xtype;
 } xbox360bb_dev_options[] = {
-	{ 0x045e, 0x02a0, "Microsoft X-Box 360 Big Button IR" },
+	{ 0x045e, 0x02a0, "Microsoft XBox360 Big Button IR", XTYPE_XBOX360 },
 	{ },
 };
 
@@ -131,15 +144,16 @@ static const signed short xbox360bb_btn[] = {
 };
 
 /*
- * Xbox 360 has a vendor-specific class, so we cannot match it with only
+ * XBox360 has a vendor-specific class, so we cannot match it with only
  * USB_INTERFACE_INFO (also specifically refused by USB subsystem), so we
- * match against vendor id as well. Wired Xbox 360 devices have protocol 1,
+ * match against vendor id as well. Wired XBox360 devices have protocol 1,
  * wireless controllers have protocol 129, and big button controllers
  * have protocol 4.
  */
 #define XBOX360BB_VENDOR_PROTOCOL(vend, pr) \
-	.match_flags = USB_DEVICE_ID_MATCH_VENDOR | \
-		       USB_DEVICE_ID_MATCH_INT_INFO, \
+	.match_flags = \
+		USB_DEVICE_ID_MATCH_VENDOR | \
+		USB_DEVICE_ID_MATCH_INT_INFO, \
 	.idVendor = (vend), \
 	.bInterfaceClass = USB_CLASS_VENDOR_SPEC, \
 	.bInterfaceSubClass = 93, \
@@ -148,10 +162,10 @@ static const signed short xbox360bb_btn[] = {
 	{ XBOX360BB_VENDOR_PROTOCOL(vend, 4) }
 
 static const char * const xbox360bb_controller_colors[] = {
-	" green controller",
-	" red controller",
-	" blue controller",
-	" yellow controller"
+	" Green Controller",
+	" Red Controller",
+	" Blue Controller",
+	" Yellow Controller"
 };
 
 
@@ -228,7 +242,7 @@ static void xbox360bb_keyup(unsigned long user_data)
 	struct xbox360bb_controller *controller =
 		(struct xbox360bb_controller *)user_data;
 #endif
-	pr_info("timer callback for controller %d\n",
+	pr_debug("timer callback for controller %d\n",
 		controller->controller_number);
 
 	/* FIXME: Is there a quick, simple way to keyup all currently
@@ -479,7 +493,7 @@ static int xbox360bb_usb_probe(struct usb_interface *intf,
 		struct xbox360bb_controller *controller =
 			&(xbox360bb->controller[controller_i]);
 
-		pr_info("making input dev %d\n", controller_i);
+		pr_debug("making input dev %d\n", controller_i);
 
 		controller->controller_number = controller_i;
 		controller->receiver = xbox360bb;
@@ -511,7 +525,7 @@ static int xbox360bb_usb_probe(struct usb_interface *intf,
 		strlcat(name, xbox360bb_controller_colors[controller_i],
 			name_size);
 
-		pr_info("... name='%s'\n", name);
+		pr_debug("... name='%s'\n", name);
 		input_dev->name = name;
 
 		/* Right, now need to do the same with phys, more or less. */
@@ -521,12 +535,12 @@ static int xbox360bb_usb_probe(struct usb_interface *intf,
 			goto fail4;
 		usb_make_path(udev, phys, 64);
 		snprintf(phys, 64, "%s/input%d", phys, controller_i);
-		pr_info("... phys='%s'\n", phys);
+		pr_debug("... phys='%s'\n", phys);
 		input_dev->phys = phys;
 
 		/* Static data */
 		input_dev->dev.parent = &intf->dev;
-		pr_info("... input_set_drvdata\n");
+		pr_debug("... input_set_drvdata\n");
 		input_set_drvdata(input_dev, controller);
 		/* Set the input device vendor/product/version from
 		   the usb ones. */
@@ -547,9 +561,9 @@ static int xbox360bb_usb_probe(struct usb_interface *intf,
 					     -1, 1, 0, 0);
 		}
 
-		pr_info("... input_register_device\n");
+		pr_debug("... input_register_device\n");
 		error = input_register_device(input_dev);
-		pr_info("returned from input_register_device, error=%d\n",
+		pr_debug("returned from input_register_device, error=%d\n",
 			error);
 
 		if (error)
@@ -593,7 +607,7 @@ static void xbox360bb_usb_disconnect(struct usb_interface *intf)
 }
 
 static struct usb_device_id xbox360bb_usb_table[] = {
-	XBOX360BB_VENDOR(0x045e),	/* Microsoft X-Box 360 controllers */
+	XBOX360BB_VENDOR(0x045e),	/* Microsoft XBox360 controllers */
 	{}
 };
 
@@ -624,6 +638,7 @@ static void __exit xbox360bb_usb_exit(void)
 module_init(xbox360bb_usb_init);
 module_exit(xbox360bb_usb_exit);
 
+MODULE_AUTHOR("Renaud Lepage <root+x360bbkm@cybik.moe>");
 MODULE_AUTHOR("Michael Farrell <micolous+lk@gmail.com>");
 MODULE_AUTHOR("James Mastros <jam...@mastros.biz>");
 MODULE_DESCRIPTION(DRIVER_DESC);

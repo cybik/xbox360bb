@@ -6,6 +6,8 @@ Copyright 2009 James Mastros <jam...@mastros.biz>
 
 Copyright 2011-2016 Michael Farrell <http://micolous.id.au>
 
+Copyright 2024- Renaud Lepage <http://cybik.moe>
+
 Licensed under the GPLv2+.
 
 ## Devices Supported ##
@@ -26,10 +28,6 @@ When a receiver is attached to the computer, it will appear as four joystick dev
 This should build cleanly on Linux 3.2.0 to 4.16.  It should build on later kernels too (but sometimes will need patching if things change).
 
 [Cybik's fork](https://github.com/cybik/xbox360bb) has a one-character change that allows 6.8.3 to load the module. This may not be compatible with earlier kernels.
-
-If you want compatibility with kernels as early as Linux 2.6.32, please check out the `2.6.32-compat` tag from the [source repository](https://github.com/micolous/xbox360bb).  This really isn't recommended.
-
-I've tested this module on `x86`, `amd64`, and `armhf`.
 
 ## Building and installing ##
 
@@ -90,7 +88,7 @@ this.
 Then clone the git repository into `/usr/src`:
 
 	# cd /usr/src
-	# git clone https://github.com/micolous/xbox360bb.git
+	# git clone https://github.com/cybik/xbox360bb.git
 
 **Note:** you could clone the repository to another directory, however it is customary to push it to `/usr/src`.
 
