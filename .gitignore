@@ -1,3 +1,7 @@
+cmake-build-*
+.vscode
+.idea
+
 modules.order
 Module.symvers
 *.ko 
