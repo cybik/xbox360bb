@@ -127,7 +127,7 @@ static const signed short xbox360bb_abs[] = {
 static const signed short xbox360bb_btn[] = {
 	/* Byte 2 (zero-based) or report, MSB to LSB */
 	/* 0x80 and 0x40 are unused */
-	BTN_BACK,   /* 0x20 */
+	BTN_SELECT, /* 0x20 */
 	BTN_START,  /* 0x10 */
 
     /* DPAD mode? */
