@@ -107,11 +107,14 @@ static const struct xbox360bb_dev_options {
 	u16 idVendor;
 	u16 idProduct;
 	char *name;
+    char *uniq_base;
 	u8 xtype;
 } xbox360bb_dev_options[] = {
-	{ 0x045e, 0x02a0, "Microsoft XBox360 Big Button IR", XTYPE_360_SCENEIT },
+	{ 0x045e, 0x02a0, "Microsoft XBox360 Big Button IR", "045e02a0", XTYPE_360_SCENEIT },
 	{ },
 };
+
+static bool BUTTON_MODE_DPAD = true;
 
 // TODO: absolute x/y or dpad? maybe a module load option?
 static const signed short xbox360bb_abs[] = {
@@ -120,21 +123,25 @@ static const signed short xbox360bb_abs[] = {
 	-1
 };
 
+
 static const signed short xbox360bb_btn[] = {
 	/* Byte 2 (zero-based) or report, MSB to LSB */
 	/* 0x80 and 0x40 are unused */
 	BTN_BACK,   /* 0x20 */
 	BTN_START,  /* 0x10 */
-	/* Right       0x08 */
-	/* Left        0x04 */
-	/* Down        0x02 */
-	/* Up          0x01 */
+
+    /* DPAD mode? */
+    BTN_DPAD_RIGHT, /* Right       0x08 */
+    BTN_DPAD_LEFT,  /* Left        0x04 */
+    BTN_DPAD_DOWN,  /* Down        0x02 */
+    BTN_DPAD_UP,    /* Up          0x01 */
 
 	/* Byte 3 (zero-based) of report, MSB to LSB */
 	BTN_Y,      /* 0x80 */
 	BTN_X,      /* 0x40 */
 	BTN_B,      /* 0x20 */
 	BTN_A,      /* 0x10 */
+
 	/*
 	 * this bit isn't used for normal xbox controllers -- on a
 	 * normal controller, you simply can't hit all the directions at
@@ -205,8 +212,9 @@ struct xbox360bb {
 	/* input side */
 
 	/* the number of input devices which are open.  Should always
-	   be between 0 and 4, and FIXME should have locking? */
-	int idev_open_count;
+	   be between 0 and 4 */
+    /* FIXME should have locking? */
+    int idev_open_count;
 
 	/* These are in a sub-struct per controller, so that we have
 	 * something nice to point to as user data in the callback
@@ -260,9 +268,12 @@ static void xbox360bb_keyup(unsigned long user_data)
 	for (i = 0; xbox360bb_btn[i] >= 0; i++)
 		input_report_key(controller->idev, xbox360bb_btn[i], 0);
 
-	/* Also reset the X and Y axis */
-	for (i = 0; xbox360bb_abs[i] >= 0; i++)
-		input_report_abs(controller->idev, xbox360bb_abs[i], 0);
+    if(!BUTTON_MODE_DPAD) {
+        /* Also reset the X and Y axis */
+        for (i = 0; xbox360bb_abs[i] >= 0; i++) {
+            input_report_abs(controller->idev, xbox360bb_abs[i], 0);
+        }
+    }
 
 	input_sync(controller->idev);
 	controller->last_report[0] = 0;
@@ -281,12 +292,9 @@ static void xbox360bb_usb_process_packet(struct xbox360bb *xbox360bb, u16 cmd,
 	/* Byte 2 of the input is what controller we've got, zero
 	 * based: green, red, blue, yellow. */
 	struct xbox360bb_controller *controller;
-	signed int x = 0;
-	signed int y = 0;
 
 	if (data[2] > 3) {
-		pr_warn("Argh, xbox360bb controller number out of range: %d",
-			data[2]);
+		pr_warn("xbox360bb controller number out of range: %d", data[2]);
 		/* Should we stop processing completely, rather then
 		just this report?  Depends on how severe the error is,
 		and I currently have no way of telling.  There's
@@ -318,13 +326,29 @@ static void xbox360bb_usb_process_packet(struct xbox360bb *xbox360bb, u16 cmd,
 	controller->last_report[0] = data[3];
 	controller->last_report[1] = data[4];
 
-	/* dpad as absolute axis... */
-	y = (data[3] & 0x01) ? -1  : y;
-	y = (data[3] & 0x02) ? 1 : y;
-	x = (data[3] & 0x04) ? -1  : x;
-	x = (data[3] & 0x08) ? 1 : x;
-	input_report_abs(controller->idev, ABS_X, x);
-	input_report_abs(controller->idev, ABS_Y, y);
+    if(BUTTON_MODE_DPAD) {
+        int u, d, l, r = 0;
+        pr_debug("U %d D %d L %d R %d\n",
+                 (u = (data[3] & 0x01)),
+                 (d = (data[3] & 0x02)),
+                 (l = (data[3] & 0x04)),
+                 (r = (data[3] & 0x08))
+        );
+        xbox360bb_keydown(controller, BTN_DPAD_UP, (data[3] & 0x01));
+        xbox360bb_keydown(controller, BTN_DPAD_DOWN, (data[3] & 0x02));
+        xbox360bb_keydown(controller, BTN_DPAD_LEFT, (data[3] & 0x04));
+        xbox360bb_keydown(controller, BTN_DPAD_RIGHT, (data[3] & 0x08));
+    } else {
+        signed int x = 0;
+        signed int y = 0;
+        /* dpad as absolute axis... */
+        y = (data[3] & 0x01) ? -1 : y;
+        y = (data[3] & 0x02) ?  1 : y;
+        x = (data[3] & 0x04) ? -1 : x;
+        x = (data[3] & 0x08) ?  1 : x;
+        input_report_abs(controller->idev, ABS_X, x);
+        input_report_abs(controller->idev, ABS_Y, y);
+    }
 
 	/* start/back buttons */
 	xbox360bb_keydown(controller, BTN_START,  data[3] & 0x10);
@@ -345,6 +369,13 @@ static void xbox360bb_usb_process_packet(struct xbox360bb *xbox360bb, u16 cmd,
 	xbox360bb_keydown(controller, BTN_B,	  data[4] & 0x20);
 	xbox360bb_keydown(controller, BTN_X,	  data[4] & 0x40);
 	xbox360bb_keydown(controller, BTN_Y,	  data[4] & 0x80);
+
+    pr_debug("A %d B %d X %d Y %d\n",
+            (data[4] & 0x10),
+            (data[4] & 0x20),
+            (data[4] & 0x40),
+            (data[4] & 0x80)
+    );
 
 	input_sync(controller->idev);
 }
@@ -445,7 +476,7 @@ static int xbox360bb_usb_probe(struct usb_interface *intf,
 	int btn_i, abs_i;
 	int error = -ENOMEM;
 
-	pr_info("xbox360bb_usb_probe vendor=0x%x, product=0x%x\n",
+    PR_KERN_LOG("xbox360bb_usb_probe vendor=0x%x, product=0x%x\n",
 		le16_to_cpu(udev->descriptor.idVendor),
 		le16_to_cpu(udev->descriptor.idProduct));
 
@@ -500,6 +531,8 @@ static int xbox360bb_usb_probe(struct usb_interface *intf,
 		 * to warn all over, or use a temporary.  */
 		char *name;
 		char *phys;
+        char *uniq;
+
 		struct xbox360bb_controller *controller =
 			&(xbox360bb->controller[controller_i]);
 
@@ -535,8 +568,17 @@ static int xbox360bb_usb_probe(struct usb_interface *intf,
 		strlcat(name, xbox360bb_controller_colors[controller_i],
 			name_size);
 
-		PR_KERN_LOG("... name='%s'\n", name);
-		input_dev->name = name;
+        PR_KERN_LOG("... name='%s'\n", name);
+        input_dev->name = name;
+
+        uniq = kzalloc((sizeof(dev_options->uniq_base) + 8), GFP_KERNEL);
+        if (!uniq) {
+            goto fail5;
+        }
+        snprintf(uniq, (sizeof(dev_options->uniq_base) + 8),"%s%d", dev_options->uniq_base, controller_i);
+
+        pr_info("... uniq='%s'\n", uniq);
+        input_dev->uniq = uniq;
 
 		/* Right, now need to do the same with phys, more or less. */
 		/* 64 is taken from xpad.c.  I hope it's long enough. */
@@ -565,15 +607,20 @@ static int xbox360bb_usb_probe(struct usb_interface *intf,
 		/* This is probably horribly inefficent, but it's
 		   one-time init code.  Keep it easy to read, until
 		   profiling says it's *actually* a problem. */
-		input_dev->evbit[0] = BIT_MASK(EV_KEY) | BIT_MASK(EV_ABS);
+		input_dev->evbit[0] = BIT_MASK(EV_KEY);
+        if(!BUTTON_MODE_DPAD) {
+            input_dev->evbit[0] |= BIT_MASK(EV_ABS);
+        }
 		for (btn_i = 0; xbox360bb_btn[btn_i] >= 0; btn_i++)
 			set_bit(xbox360bb_btn[btn_i], input_dev->keybit);
 
-		for (abs_i = 0; xbox360bb_abs[abs_i] >= 0; abs_i++) {
-			set_bit(xbox360bb_abs[abs_i], input_dev->absbit);
-			input_set_abs_params(input_dev, xbox360bb_abs[abs_i],
-					     -1, 1, 0, 0);
-		}
+        if(!BUTTON_MODE_DPAD) {
+            for (abs_i = 0; xbox360bb_abs[abs_i] >= 0; abs_i++) {
+                set_bit(xbox360bb_abs[abs_i], input_dev->absbit);
+                input_set_abs_params(input_dev, xbox360bb_abs[abs_i],
+                                     -1, 1, 0, 0);
+            }
+        }
 
 		PR_KERN_LOG("... input_register_device\n");
 		error = input_register_device(input_dev);
@@ -588,8 +635,12 @@ static int xbox360bb_usb_probe(struct usb_interface *intf,
 
 	/* FIXME: We currently leak in failure cases numbered above
 	 * fail3. */
+fail5:
+    pr_warn("Fail5: failed to allocate uniq string!\n");
+    /* need to check which bits of the input stuff have been
+     * allocated, because it's all loopy. */
 fail4:
-	pr_warn("Aaargh, hit fail4!\n");
+	pr_warn("Fail4: failed to allocate name string!\n");
 	/* need to check which bits of the input stuff have been
 	 * allocated, because it's all loopy. */
 fail3:
