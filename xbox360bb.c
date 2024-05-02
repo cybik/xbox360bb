@@ -507,7 +507,7 @@ static int xbox360bb_usb_probe(struct usb_interface *intf,
 		 * input_dev->name so it will fit, and the worst that
 		 * will happen with str*l*(cpy|cat) is truncation.
 		 */
-		strlcpy(name, dev_options->name, name_size);
+		strscpy(name, dev_options->name, name_size);
 		strlcat(name, xbox360bb_controller_colors[controller_i],
 			name_size);
 
