@@ -2,11 +2,9 @@
 
 A driver for the Xbox 360 Big Button (aka "Scene It") controllers / receiver.
 
-Copyright 2009 James Mastros <jam...@mastros.biz>
-
-Copyright 2011-2016 Michael Farrell <http://micolous.id.au>
-
-Copyright 2024- Renaud Lepage <http://cybik.moe>
+* Copyright 2009 James Mastros <jam...@mastros.biz>
+* Copyright 2011-2016 Michael Farrell <http://micolous.id.au>
+* Copyright 2024- Renaud Lepage <http://cybik.moe>
 
 Licensed under the GPLv2+.
 
@@ -16,18 +14,26 @@ Licensed under the GPLv2+.
 
 **Note**: this will not give support for the controllers via LIRC, nor does the receiver act as a generic infrared receiver (CIR).  You can only use Xbox 360 Big Button controllers with it.  No other Xbox infrared accessories will function with the receiver.
 
-When a receiver is attached to the computer, it will appear as four joystick devices -- one for each colour controller:
+When a receiver is attached to the computer, four joystick/controller devices will appear - one for each controller colour:
 
- * Microsoft X-Box 360 Big Button IR green controller
- * Microsoft X-Box 360 Big Button IR red controller
- * Microsoft X-Box 360 Big Button IR blue controller
- * Microsoft X-Box 360 Big Button IR yellow controller
+ * X360 Big Button Green Controller
+ * X360 Big Button Red Controller
+ * X360 Big Button Blue Controller
+ * X360 Big Button Yellow Controller
 
 ## Kernels supported ##
 
-This should build cleanly on Linux 3.2.0 to 4.16.  It should build on later kernels too (but sometimes will need patching if things change).
+This should build cleanly on Linux 3.2.0 to 4.16.  It should build on later kernels too (but sometimes will need 
+patching if things change).
 
-[Cybik's fork](https://github.com/cybik/xbox360bb) has a one-character change that allows 6.8.3 to load the module. This may not be compatible with earlier kernels.
+## A NEW CHALLENGER APPROACHES ##
+
+[Cybik's fork](https://github.com/cybik/xbox360bb) started with a one-character change that allowed 6.8.3 to load the module, and more modifications,
+such as a Steam Input hack to allow for 4 different virtual devices at once, emerged over a few hours. DKMS was added,
+too, to provide the ability to install the module source automatically and have it auto-recompile on kernel upgrades.
+
+Code to make this module compatible with <4.15.0 was removed; kernel versions that old are now considered
+ancient in the era of 6.8.x. Backport as you must. --RL
 
 ## Building and installing ##
 
@@ -118,7 +124,7 @@ You can use the `jstest` program to test the controllers, however be aware that 
 
 I'm not interested in porting this to non-Linux platforms.
 
-However, because I rank highly in Google Searches and get emails as a result, here are some pointers:
+However, because I (edit: former maintainers) rank highly in Google Searches and get emails as a result, here are some pointers:
 
 ### All platforms (using Linux virtualised) ###
 
@@ -136,17 +142,6 @@ When you start the game, put a URL (and QR code) on the screen where people can 
 
 Then, allow people to use their phone to join the game, and have some AJAX or WebSockets and a little JavaScript to render elements on the phone for people to press on the fly, and fire events back to your game.
 
-### OSX support ###
+### Not-Linux support ###
 
-There's no driver for this.
-
-[There is an open source driver for the Xbox 360 gamepads](https://github.com/360Controller/360Controller).  It needs some modifications to make this work.  Get hacking. :)
-
-### Windows support ###
-
-The Big Button receiver uses very a non-standard interface, using **neither** the Xbox 360 gamepad interface or USB HID.  The standard Microsoft Xbox controller drivers **will not work with this controller**.
-
-There is some support for the controller in [Microsoft's XNA Game Studio SDK](http://xbox.create.msdn.com/en-US/) version 3, however it is only supported on the Xbox 360, not on Windows.  Unlike the Windows SDK, you **also** require an XNA Creators Club paid subscription in order to deploy code to the Xbox 360.
-
-If you want to use a similar controller on Windows, sell your Big Button controller and buy a Playstation Buzz controller instead.  [There is an existing C# library for interfacing with the controllers](https://github.com/bbeardsley/BuzzIO), and they are of a similar form factor (although wired rather than IR), which you can use for quiz-show type games.
-
+Have fun hacking!
