@@ -113,15 +113,17 @@ static const struct xbox360bb_dev_options {
     { },
 };
 
-static bool BUTTON_MODE_DPAD = true;
+static bool BUTTON_MODE_DPAD = false;
+
+#define X_AXIS ABS_X
+#define Y_AXIS ABS_Y
 
 // TODO: absolute x/y or dpad? maybe a module load option?
 static const signed short xbox360bb_abs[] = {
-    ABS_X,
-    ABS_Y,
+    X_AXIS,
+    Y_AXIS,
     -1
 };
-
 
 static const signed short xbox360bb_btn[] = {
     /* Byte 2 (zero-based) or report, MSB to LSB */
@@ -341,12 +343,12 @@ static void xbox360bb_usb_process_packet(struct xbox360bb *xbox360bb, u16 cmd,
         signed int x = 0;
         signed int y = 0;
         /* dpad as absolute axis... */
-        y = (data[3] & 0x01) ? -1 : y;
-        y = (data[3] & 0x02) ?  1 : y;
+        y = (data[3] & 0x01) ?  1 : y;
+        y = (data[3] & 0x02) ? -1 : y;
         x = (data[3] & 0x04) ? -1 : x;
         x = (data[3] & 0x08) ?  1 : x;
-        input_report_abs(controller->idev, ABS_X, x);
-        input_report_abs(controller->idev, ABS_Y, y);
+        input_report_abs(controller->idev, X_AXIS, x);
+        input_report_abs(controller->idev, Y_AXIS, y);
     }
 
     /* start/back buttons */
@@ -616,17 +618,16 @@ static int xbox360bb_usb_probe(struct usb_interface *intf,
          * profiling says it's *actually* a problem.
          */
         input_dev->evbit[0] = BIT_MASK(EV_KEY);
-        if(!BUTTON_MODE_DPAD) {
-            input_dev->evbit[0] |= BIT_MASK(EV_ABS);
+        for (btn_i = 0; xbox360bb_btn[btn_i] >= 0; btn_i++) {
+            input_set_capability(input_dev, EV_KEY, xbox360bb_btn[btn_i]);
         }
-        for (btn_i = 0; xbox360bb_btn[btn_i] >= 0; btn_i++)
-            set_bit(xbox360bb_btn[btn_i], input_dev->keybit);
 
         if(!BUTTON_MODE_DPAD) {
+            input_dev->evbit[0] |= BIT_MASK(EV_ABS);
             for (abs_i = 0; xbox360bb_abs[abs_i] >= 0; abs_i++) {
-                set_bit(xbox360bb_abs[abs_i], input_dev->absbit);
+                //set_bit(xbox360bb_abs[abs_i], input_dev->absbit);
                 input_set_abs_params(input_dev, xbox360bb_abs[abs_i],
-                                        -1, 1, 0, 0);
+                                        -32767, 32767, 0, 0);
             }
         }
 
@@ -636,19 +637,26 @@ static int xbox360bb_usb_probe(struct usb_interface *intf,
             error);
 
         if (error)
-            goto fail4;
+            goto fail6;
     }
 
     return 0;
 
     /* FIXME: We currently leak in failure cases numbered above
      * fail3. */
+fail6:
+    pr_warn("Fail6: General setup error.\n");
+    goto fail3;
+    /* need to check which bits of the input stuff have been
+     * allocated, because it's all loopy. */
 fail5:
     pr_warn("Fail5: failed to allocate uniq string!\n");
+    goto fail3;
     /* need to check which bits of the input stuff have been
      * allocated, because it's all loopy. */
 fail4:
     pr_warn("Fail4: failed to allocate name string!\n");
+    goto fail3;
     /* need to check which bits of the input stuff have been
      * allocated, because it's all loopy. */
 fail3:
