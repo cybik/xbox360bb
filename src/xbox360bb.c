@@ -97,9 +97,8 @@ static const struct xbox360bb_dev_options {
     u16 idVendor;
     u16 idProduct;
     char *name;
-    char *uniq_base;
 } xbox360bb_dev_options[] = {
-    { 0x045e, 0x02a0, "X360 Big Button", "045e02a0" },
+    { 0x045e, 0x02a0, "X360 Big Button" },
     { },
 };
 
@@ -493,7 +492,6 @@ static int xbox360bb_usb_probe(struct usb_interface *intf,
          * to warn all over, or use a temporary.  */
         char *name;
         char *phys;
-        char *uniq;
 
         struct xbox360bb_controller *controller =
             &(xbox360bb->controller[controller_i]);
@@ -528,15 +526,6 @@ static int xbox360bb_usb_probe(struct usb_interface *intf,
 
         PR_KERN_LOG("... name='%s'\n", name);
         input_dev->name = name;
-
-        uniq = kzalloc((sizeof(dev_options->uniq_base) + 8), GFP_KERNEL);
-        if (!uniq) {
-            goto fail5;
-        }
-        snprintf(uniq, (sizeof(dev_options->uniq_base) + 8),"%s%d", dev_options->uniq_base, controller_i);
-
-        PR_KERN_LOG("... uniq='%s'\n", uniq);
-        input_dev->uniq = uniq;
 
         /* Right, now need to do the same with phys, more or less. */
         /* 64 is taken from xpad.c. Let's hope it's long enough. */
@@ -587,7 +576,7 @@ static int xbox360bb_usb_probe(struct usb_interface *intf,
             error);
 
         if (error)
-            goto fail6;
+            goto fail5;
     }
 
     return 0;
@@ -596,11 +585,8 @@ static int xbox360bb_usb_probe(struct usb_interface *intf,
      * FIXME: We currently leak in failure cases numbered above
      * fail3.
      */
-fail6:
-    pr_warn("Fail6: General setup error.\n");
-    goto fail3;
 fail5:
-    pr_warn("Fail5: failed to allocate uniq string!\n");
+    pr_warn("Fail5: General setup error.\n");
     goto fail3;
 fail4:
     pr_warn("Fail4: failed to allocate name string!\n");
