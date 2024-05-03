@@ -104,31 +104,31 @@
  * sure.
  */
 static const struct xbox360bb_dev_options {
-	u16 idVendor;
-	u16 idProduct;
-	char *name;
+    u16 idVendor;
+    u16 idProduct;
+    char *name;
     char *uniq_base;
-	u8 xtype;
+    u8 xtype;
 } xbox360bb_dev_options[] = {
-	{ 0x045e, 0x02a0, "Microsoft XBox360 Big Button IR", "045e02a0", XTYPE_360_SCENEIT },
-	{ },
+    { 0x045e, 0x02a0, "Microsoft XBox360 Big Button IR", "045e02a0", XTYPE_360_SCENEIT },
+    { },
 };
 
 static bool BUTTON_MODE_DPAD = true;
 
 // TODO: absolute x/y or dpad? maybe a module load option?
 static const signed short xbox360bb_abs[] = {
-	ABS_X,
-	ABS_Y,
-	-1
+    ABS_X,
+    ABS_Y,
+    -1
 };
 
 
 static const signed short xbox360bb_btn[] = {
-	/* Byte 2 (zero-based) or report, MSB to LSB */
-	/* 0x80 and 0x40 are unused */
-	BTN_SELECT, /* 0x20 */
-	BTN_START,  /* 0x10 */
+    /* Byte 2 (zero-based) or report, MSB to LSB */
+    /* 0x80 and 0x40 are unused */
+    BTN_SELECT, /* 0x20 */
+    BTN_START,  /* 0x10 */
 
     /* DPAD mode? */
     BTN_DPAD_RIGHT, /* Right       0x08 */
@@ -136,28 +136,28 @@ static const signed short xbox360bb_btn[] = {
     BTN_DPAD_DOWN,  /* Down        0x02 */
     BTN_DPAD_UP,    /* Up          0x01 */
 
-	/* Byte 3 (zero-based) of report, MSB to LSB */
-	BTN_Y,      /* 0x80 */
-	BTN_X,      /* 0x40 */
-	BTN_B,      /* 0x20 */
-	BTN_A,      /* 0x10 */
+    /* Byte 3 (zero-based) of report, MSB to LSB */
+    BTN_Y,      /* 0x80 */
+    BTN_X,      /* 0x40 */
+    BTN_B,      /* 0x20 */
+    BTN_A,      /* 0x10 */
 
-	/*
-	 * this bit isn't used for normal xbox controllers -- on a
-	 * normal controller, you simply can't hit all the directions at
-	 * the same time, and on a dance controller, you can only if
-	 * you have four feet.
-	 * There's no clear button defintion for this use, so we use
-	 * thumbr.
-	 * In any case, it's byte 4, 0x08.
-	 */
-	BTN_THUMBR, /* 0x08 */
-	/* The big X, logo button.  xpad uses BTN_MODE. */
-	/* Also known as the Guide or Dashboard button. */
-	BTN_MODE,   /* 0x04 */
-	/* 0x02 and 0x01 seem to be unused. */
-	/* end marker */
-	-1
+    /*
+     * this bit isn't used for normal xbox controllers -- on a
+     * normal controller, you simply can't hit all the directions at
+     * the same time, and on a dance controller, you can only if
+     * you have four feet.
+     * There's no clear button defintion for this use, so we use
+     * thumbr.
+     * In any case, it's byte 4, 0x08.
+     */
+    BTN_THUMBR, /* 0x08 */
+    /* The big X, logo button.  xpad uses BTN_MODE. */
+    /* Also known as the Guide or Dashboard button. */
+    BTN_MODE,   /* 0x04 */
+    /* 0x02 and 0x01 seem to be unused. */
+    /* end marker */
+    -1
 };
 
 /*
@@ -168,21 +168,21 @@ static const signed short xbox360bb_btn[] = {
  * have protocol 4.
  */
 #define XBOX360BB_VENDOR_PROTOCOL(vend, pr) \
-	.match_flags = \
-		USB_DEVICE_ID_MATCH_VENDOR | \
-		USB_DEVICE_ID_MATCH_INT_INFO, \
-	.idVendor = (vend), \
-	.bInterfaceClass = USB_CLASS_VENDOR_SPEC, \
-	.bInterfaceSubClass = 93, \
-	.bInterfaceProtocol = (pr)
+    .match_flags = \
+        USB_DEVICE_ID_MATCH_VENDOR | \
+        USB_DEVICE_ID_MATCH_INT_INFO, \
+    .idVendor = (vend), \
+    .bInterfaceClass = USB_CLASS_VENDOR_SPEC, \
+    .bInterfaceSubClass = 93, \
+    .bInterfaceProtocol = (pr)
 #define XBOX360BB_VENDOR(vend) \
-	{ XBOX360BB_VENDOR_PROTOCOL(vend, 4) }
+    { XBOX360BB_VENDOR_PROTOCOL(vend, 4) }
 
 static const char * const xbox360bb_controller_colors[] = {
-	" Green Controller",
-	" Red Controller",
-	" Blue Controller",
-	" Yellow Controller"
+    " Green Controller",
+    " Red Controller",
+    " Blue Controller",
+    " Yellow Controller"
 };
 
 
@@ -192,38 +192,38 @@ static const char * const xbox360bb_controller_colors[] = {
 struct xbox360bb;
 
 struct xbox360bb_controller {
-	/* Points back to the parent usb_xbox360bb struct */
-	struct xbox360bb *receiver;
-	/* 0..3 */
-	int controller_number;
-	struct input_dev *idev;
-	unsigned char last_report[2];
-	struct timer_list timer_keyup;
+    /* Points back to the parent usb_xbox360bb struct */
+    struct xbox360bb *receiver;
+    /* 0..3 */
+    int controller_number;
+    struct input_dev *idev;
+    unsigned char last_report[2];
+    struct timer_list timer_keyup;
 };
 
 struct xbox360bb {
-	/* USB side */
-	struct usb_device *udev;	/* usb device */
-	struct urb *irq_in;		/* urb for interrupt in report */
-	unsigned char *raw_data;	/* input data */
-	/* TODO: rename to raw_data_dma */
-	dma_addr_t idata_dma;
+    /* USB side */
+    struct usb_device *udev;    /* usb device */
+    struct urb *irq_in;        /* urb for interrupt in report */
+    unsigned char *raw_data;    /* input data */
+    /* TODO: rename to raw_data_dma */
+    dma_addr_t idata_dma;
 
-	/* input side */
+    /* input side */
 
-	/* the number of input devices which are open.  Should always
-	   be between 0 and 4 */
+    /* the number of input devices which are open.  Should always
+       be between 0 and 4 */
     /* FIXME should have locking? */
     int idev_open_count;
 
-	/* These are in a sub-struct per controller, so that we have
-	 * something nice to point to as user data in the callback
-	 * functions that lets us know which controller we are
-	 * handling in a nice, clean manner.  OTOH, directly embedding
-	 * the struct lets us not worry about that messy allocation
-	 * stuff
-	 */
-	struct xbox360bb_controller controller[4];
+    /* These are in a sub-struct per controller, so that we have
+     * something nice to point to as user data in the callback
+     * functions that lets us know which controller we are
+     * handling in a nice, clean manner.  OTOH, directly embedding
+     * the struct lets us not worry about that messy allocation
+     * stuff
+     */
+    struct xbox360bb_controller controller[4];
 };
 
 /* xbox360bb_keydown
@@ -236,9 +236,9 @@ struct xbox360bb {
  *
  */
 static void xbox360bb_keydown(struct xbox360bb_controller *controller,
-			      int button, int val)
+                  int button, int val)
 {
-	input_report_key(controller->idev, button, val);
+    input_report_key(controller->idev, button, val);
 }
 
 /* xbox360bb_keyup
@@ -250,23 +250,23 @@ static void xbox360bb_keydown(struct xbox360bb_controller *controller,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 static void xbox360bb_keyup(struct timer_list * t)
 {
-	int i;
-	struct xbox360bb_controller *controller =
-		(struct xbox360bb_controller *)from_timer(controller, t, timer_keyup);
+    int i;
+    struct xbox360bb_controller *controller =
+        (struct xbox360bb_controller *)from_timer(controller, t, timer_keyup);
 #else
 static void xbox360bb_keyup(unsigned long user_data)
 {
-	int i;
-	struct xbox360bb_controller *controller =
-		(struct xbox360bb_controller *)user_data;
+    int i;
+    struct xbox360bb_controller *controller =
+        (struct xbox360bb_controller *)user_data;
 #endif
-	PR_KERN_LOG("timer callback for controller %d\n",
-		controller->controller_number);
+    PR_KERN_LOG("timer callback for controller %d\n",
+        controller->controller_number);
 
-	/* FIXME: Is there a quick, simple way to keyup all currently
-	 * down keys at once? */
-	for (i = 0; xbox360bb_btn[i] >= 0; i++)
-		input_report_key(controller->idev, xbox360bb_btn[i], 0);
+    /* FIXME: Is there a quick, simple way to keyup all currently
+     * down keys at once? */
+    for (i = 0; xbox360bb_btn[i] >= 0; i++)
+        input_report_key(controller->idev, xbox360bb_btn[i], 0);
 
     if(!BUTTON_MODE_DPAD) {
         /* Also reset the X and Y axis */
@@ -275,9 +275,9 @@ static void xbox360bb_keyup(unsigned long user_data)
         }
     }
 
-	input_sync(controller->idev);
-	controller->last_report[0] = 0;
-	controller->last_report[1] = 0;
+    input_sync(controller->idev);
+    controller->last_report[0] = 0;
+    controller->last_report[1] = 0;
 }
 
 /*
@@ -287,44 +287,44 @@ static void xbox360bb_keyup(unsigned long user_data)
  * the actual core of this module; everything else is plumbing.
  */
 static void xbox360bb_usb_process_packet(struct xbox360bb *xbox360bb, u16 cmd,
-					 unsigned char *data)
+                     unsigned char *data)
 {
-	/* Byte 2 of the input is what controller we've got, zero
-	 * based: green, red, blue, yellow. */
-	struct xbox360bb_controller *controller;
+    /* Byte 2 of the input is what controller we've got, zero
+     * based: green, red, blue, yellow. */
+    struct xbox360bb_controller *controller;
 
-	if (data[2] > 3) {
-		pr_warn("xbox360bb controller number out of range: %d", data[2]);
-		/* Should we stop processing completely, rather then
-		just this report?  Depends on how severe the error is,
-		and I currently have no way of telling.  There's
-		unlikely to be worse results then just the driver
-		hitting random buttons -- this is the only place where
-		we use input from the controller as an index in kernel
-		space. On the other hand, what controller do we
-		attribute the report to? */
-		return;
-	}
-	controller = &(xbox360bb->controller[data[2]]);
+    if (data[2] > 3) {
+        pr_warn("xbox360bb controller number out of range: %d", data[2]);
+        /* Should we stop processing completely, rather then
+        just this report?  Depends on how severe the error is,
+        and I currently have no way of telling.  There's
+        unlikely to be worse results then just the driver
+        hitting random buttons -- this is the only place where
+        we use input from the controller as an index in kernel
+        space. On the other hand, what controller do we
+        attribute the report to? */
+        return;
+    }
+    controller = &(xbox360bb->controller[data[2]]);
 
-	PR_KERN_LOG("%d ms currently remaining on timer\n",
-		 jiffies_to_msecs(controller->timer_keyup.expires-jiffies));
+    PR_KERN_LOG("%d ms currently remaining on timer\n",
+         jiffies_to_msecs(controller->timer_keyup.expires-jiffies));
 
-	/* Arm the timer (or move it forward).  In a quick test, 188
-	 * ms is longest between two reports.  250 should give us
-	 * plenty of time for highly loaded systems. */
-	mod_timer(&controller->timer_keyup, jiffies + msecs_to_jiffies(250));
+    /* Arm the timer (or move it forward).  In a quick test, 188
+     * ms is longest between two reports.  250 should give us
+     * plenty of time for highly loaded systems. */
+    mod_timer(&controller->timer_keyup, jiffies + msecs_to_jiffies(250));
 
-	/* Short-circuit further processing if this report is the same
-	 * as the previous one.  Just a cheap way of saving CPU time,
-	 * mostly. */
-	if (controller->last_report[0] == data[3] &&
-	    controller->last_report[1] == data[4]) {
-		PR_KERN_LOG("Ignoring duplicate report\n");
-		return;
-	}
-	controller->last_report[0] = data[3];
-	controller->last_report[1] = data[4];
+    /* Short-circuit further processing if this report is the same
+     * as the previous one.  Just a cheap way of saving CPU time,
+     * mostly. */
+    if (controller->last_report[0] == data[3] &&
+        controller->last_report[1] == data[4]) {
+        PR_KERN_LOG("Ignoring duplicate report\n");
+        return;
+    }
+    controller->last_report[0] = data[3];
+    controller->last_report[1] = data[4];
 
     if(BUTTON_MODE_DPAD) {
         int u, d, l, r = 0;
@@ -350,25 +350,25 @@ static void xbox360bb_usb_process_packet(struct xbox360bb *xbox360bb, u16 cmd,
         input_report_abs(controller->idev, ABS_Y, y);
     }
 
-	/* start/back buttons */
-	xbox360bb_keydown(controller, BTN_START,  data[3] & 0x10);
-	xbox360bb_keydown(controller, BTN_BACK,   data[3] & 0x20);
-	xbox360bb_keydown(controller, BTN_MODE,   data[4] & 0x04);
+    /* start/back buttons */
+    xbox360bb_keydown(controller, BTN_START,  data[3] & 0x10);
+    xbox360bb_keydown(controller, BTN_SELECT,   data[3] & 0x20);
+    xbox360bb_keydown(controller, BTN_MODE,   data[4] & 0x04);
 
-	/* This is the only button that is rather novel vs the normal
-	 * controller.  The corsponding bit for the normal controllers
-	 * isn't used, as far as I can see.  It's like the thumb
-	 * buttons, so call it the right one, randomly.
-	 * (Normally the thumb button goes with an analog stick, not a dpad.)
-	 */
-	xbox360bb_keydown(controller, BTN_THUMBR, data[4] & 0x08);
+    /* This is the only button that is rather novel vs the normal
+     * controller.  The corsponding bit for the normal controllers
+     * isn't used, as far as I can see.  It's like the thumb
+     * buttons, so call it the right one, randomly.
+     * (Normally the thumb button goes with an analog stick, not a dpad.)
+     */
+    xbox360bb_keydown(controller, BTN_THUMBR, data[4] & 0x08);
 
 
-	/* buttons A,B,X,Y,TL,TR and MODE */
-	xbox360bb_keydown(controller, BTN_A,	  data[4] & 0x10);
-	xbox360bb_keydown(controller, BTN_B,	  data[4] & 0x20);
-	xbox360bb_keydown(controller, BTN_X,	  data[4] & 0x40);
-	xbox360bb_keydown(controller, BTN_Y,	  data[4] & 0x80);
+    /* buttons A,B,X,Y,TL,TR and MODE */
+    xbox360bb_keydown(controller, BTN_A,      data[4] & 0x10);
+    xbox360bb_keydown(controller, BTN_B,      data[4] & 0x20);
+    xbox360bb_keydown(controller, BTN_X,      data[4] & 0x40);
+    xbox360bb_keydown(controller, BTN_Y,      data[4] & 0x80);
 
     pr_debug("A %d B %d X %d Y %d\n",
             (data[4] & 0x10),
@@ -377,41 +377,41 @@ static void xbox360bb_usb_process_packet(struct xbox360bb *xbox360bb, u16 cmd,
             (data[4] & 0x80)
     );
 
-	input_sync(controller->idev);
+    input_sync(controller->idev);
 }
 
 static void xbox360bb_usb_irq_in(struct urb *urb)
 {
-	struct xbox360bb *xbox360bb = urb->context;
-	int retval, status;
+    struct xbox360bb *xbox360bb = urb->context;
+    int retval, status;
 
-	status = urb->status;
+    status = urb->status;
 
 
-	switch (status) {
-	case 0:
-		/* success */
-		break;
-	case -ECONNRESET:
-	case -ENOENT:
-	case -ESHUTDOWN:
-		/* this urb is terminated, clean up */
-		PR_KERN_LOG("%s - urb shutting down with status: %d",
-			 __func__, status);
-		return;
-	default:
-		PR_KERN_LOG("%s - nonzero urb status received: %d",
-			 __func__, status);
-		goto exit;
-	}
+    switch (status) {
+    case 0:
+        /* success */
+        break;
+    case -ECONNRESET:
+    case -ENOENT:
+    case -ESHUTDOWN:
+        /* this urb is terminated, clean up */
+        PR_KERN_LOG("%s - urb shutting down with status: %d",
+             __func__, status);
+        return;
+    default:
+        PR_KERN_LOG("%s - nonzero urb status received: %d",
+             __func__, status);
+        goto exit;
+    }
 
-	xbox360bb_usb_process_packet(xbox360bb, 0, xbox360bb->raw_data);
+    xbox360bb_usb_process_packet(xbox360bb, 0, xbox360bb->raw_data);
 
 exit:
-	retval = usb_submit_urb(urb, GFP_ATOMIC);
-	if (retval)
-		pr_err("%s - usb_submit_urb failed with result %d",
-		       __func__, retval);
+    retval = usb_submit_urb(urb, GFP_ATOMIC);
+    if (retval)
+        pr_err("%s - usb_submit_urb failed with result %d",
+               __func__, retval);
 }
 
 /* Input side device opened.  We'll never see two overlapping opens
@@ -420,153 +420,153 @@ exit:
  */
 static int xbox360bb_input_open(struct input_dev *idev)
 {
-	struct xbox360bb_controller *controller = input_get_drvdata(idev);
-	struct xbox360bb *xbox360bb = controller->receiver;
-	int error;
+    struct xbox360bb_controller *controller = input_get_drvdata(idev);
+    struct xbox360bb *xbox360bb = controller->receiver;
+    int error;
 
-	if (xbox360bb->idev_open_count == 0) {
-		PR_KERN_LOG("In open, submitting URB\n");
-		error = usb_submit_urb(xbox360bb->irq_in, GFP_KERNEL);
-		if (error) {
-			pr_warn("...error = %d\n", error);
-			return -EIO;
-		}
-		PR_KERN_LOG("...passed\n");
-	} else {
-		PR_KERN_LOG("Not trying to submit URB; it should already be running (idev_open_count=%d)\n",
-			xbox360bb->idev_open_count);
-	}
-	xbox360bb->idev_open_count++;
-	if (xbox360bb->idev_open_count > 4)
-		pr_warn("idev_open_count=%d is out of range after open\n",
-			xbox360bb->idev_open_count);
+    if (xbox360bb->idev_open_count == 0) {
+        PR_KERN_LOG("In open, submitting URB\n");
+        error = usb_submit_urb(xbox360bb->irq_in, GFP_KERNEL);
+        if (error) {
+            pr_warn("...error = %d\n", error);
+            return -EIO;
+        }
+        PR_KERN_LOG("...passed\n");
+    } else {
+        PR_KERN_LOG("Not trying to submit URB; it should already be running (idev_open_count=%d)\n",
+            xbox360bb->idev_open_count);
+    }
+    xbox360bb->idev_open_count++;
+    if (xbox360bb->idev_open_count > 4)
+        pr_warn("idev_open_count=%d is out of range after open\n",
+            xbox360bb->idev_open_count);
 
-	return 0;
+    return 0;
 }
 
 static void xbox360bb_input_close(struct input_dev *idev)
 {
-	struct xbox360bb_controller *controller = input_get_drvdata(idev);
-	struct xbox360bb *xbox360bb = controller->receiver;
+    struct xbox360bb_controller *controller = input_get_drvdata(idev);
+    struct xbox360bb *xbox360bb = controller->receiver;
 
-	if (xbox360bb->idev_open_count == 1) {
-		PR_KERN_LOG("In close, killing urb\n");
-		usb_kill_urb(xbox360bb->irq_in);
-	} else {
-		PR_KERN_LOG("In close, not killing urb, open count=%d\n",
-			 xbox360bb->idev_open_count);
-	}
-	xbox360bb->idev_open_count--;
-	if (xbox360bb->idev_open_count < 0)
-		pr_warn("Argh, idev_open_count less then 0: %d\n",
-			xbox360bb->idev_open_count);
+    if (xbox360bb->idev_open_count == 1) {
+        PR_KERN_LOG("In close, killing urb\n");
+        usb_kill_urb(xbox360bb->irq_in);
+    } else {
+        PR_KERN_LOG("In close, not killing urb, open count=%d\n",
+             xbox360bb->idev_open_count);
+    }
+    xbox360bb->idev_open_count--;
+    if (xbox360bb->idev_open_count < 0)
+        pr_warn("Argh, idev_open_count less then 0: %d\n",
+            xbox360bb->idev_open_count);
 }
 
 static int xbox360bb_usb_probe(struct usb_interface *intf,
-			       const struct usb_device_id *id)
+                   const struct usb_device_id *id)
 {
-	struct usb_device *udev = interface_to_usbdev(intf);
-	struct xbox360bb *xbox360bb;
-	struct input_dev *input_dev;
-	struct usb_endpoint_descriptor *ep_irq_in;
-	const struct xbox360bb_dev_options *dev_options = NULL;
+    struct usb_device *udev = interface_to_usbdev(intf);
+    struct xbox360bb *xbox360bb;
+    struct input_dev *input_dev;
+    struct usb_endpoint_descriptor *ep_irq_in;
+    const struct xbox360bb_dev_options *dev_options = NULL;
 
-	int options_i;
-	int controller_i;
-	int btn_i, abs_i;
-	int error = -ENOMEM;
+    int options_i;
+    int controller_i;
+    int btn_i, abs_i;
+    int error = -ENOMEM;
 
     PR_KERN_LOG("xbox360bb_usb_probe vendor=0x%x, product=0x%x\n",
-		le16_to_cpu(udev->descriptor.idVendor),
-		le16_to_cpu(udev->descriptor.idProduct));
+        le16_to_cpu(udev->descriptor.idVendor),
+        le16_to_cpu(udev->descriptor.idProduct));
 
-	/* Find the xbox360bb_device entry for this one.  (FIXME:
-	   Should we get rid of this?  We only have one, presently,
-	   and no options we need to look up in here anyway.) */
-	for (options_i = 0;
-	     xbox360bb_dev_options[options_i].idVendor;
-	     options_i++) {
-		dev_options = &xbox360bb_dev_options[options_i];
-		if ((le16_to_cpu(udev->descriptor.idVendor) ==
-		     dev_options->idVendor) &&
-		    (le16_to_cpu(udev->descriptor.idProduct) ==
-		     dev_options->idProduct))
-			break;
-	}
+    /* Find the xbox360bb_device entry for this one.  (FIXME:
+       Should we get rid of this?  We only have one, presently,
+       and no options we need to look up in here anyway.) */
+    for (options_i = 0;
+         xbox360bb_dev_options[options_i].idVendor;
+         options_i++) {
+        dev_options = &xbox360bb_dev_options[options_i];
+        if ((le16_to_cpu(udev->descriptor.idVendor) ==
+             dev_options->idVendor) &&
+            (le16_to_cpu(udev->descriptor.idProduct) ==
+             dev_options->idProduct))
+            break;
+    }
 
-	xbox360bb = kzalloc(sizeof(struct xbox360bb), GFP_KERNEL);
-	if (!xbox360bb)
-		goto fail1;
+    xbox360bb = kzalloc(sizeof(struct xbox360bb), GFP_KERNEL);
+    if (!xbox360bb)
+        goto fail1;
 
-	/* Init the USB stuff */
-	xbox360bb->udev = udev;
+    /* Init the USB stuff */
+    xbox360bb->udev = udev;
 
-	xbox360bb->raw_data = usb_alloc_coherent(udev, XBOX360BB_PKT_LEN,
-						 GFP_KERNEL,
-						 &xbox360bb->idata_dma);
+    xbox360bb->raw_data = usb_alloc_coherent(udev, XBOX360BB_PKT_LEN,
+                         GFP_KERNEL,
+                         &xbox360bb->idata_dma);
 
-	if (!xbox360bb->raw_data)
-		goto fail2;
+    if (!xbox360bb->raw_data)
+        goto fail2;
 
-	xbox360bb->irq_in = usb_alloc_urb(0, GFP_KERNEL);
-	if (!xbox360bb->irq_in)
-		goto fail3;
+    xbox360bb->irq_in = usb_alloc_urb(0, GFP_KERNEL);
+    if (!xbox360bb->irq_in)
+        goto fail3;
 
-	ep_irq_in = &intf->cur_altsetting->endpoint[0].desc;
-	usb_fill_int_urb(xbox360bb->irq_in, udev,
-			 usb_rcvintpipe(udev, ep_irq_in->bEndpointAddress),
-			 xbox360bb->raw_data, XBOX360BB_PKT_LEN,
-			 xbox360bb_usb_irq_in,
-			 xbox360bb, ep_irq_in->bInterval);
-	xbox360bb->irq_in->transfer_dma = xbox360bb->idata_dma;
-	xbox360bb->irq_in->transfer_flags |= URB_NO_TRANSFER_DMA_MAP;
-	xbox360bb->irq_in->dev = xbox360bb->udev;
+    ep_irq_in = &intf->cur_altsetting->endpoint[0].desc;
+    usb_fill_int_urb(xbox360bb->irq_in, udev,
+             usb_rcvintpipe(udev, ep_irq_in->bEndpointAddress),
+             xbox360bb->raw_data, XBOX360BB_PKT_LEN,
+             xbox360bb_usb_irq_in,
+             xbox360bb, ep_irq_in->bInterval);
+    xbox360bb->irq_in->transfer_dma = xbox360bb->idata_dma;
+    xbox360bb->irq_in->transfer_flags |= URB_NO_TRANSFER_DMA_MAP;
+    xbox360bb->irq_in->dev = xbox360bb->udev;
 
-	usb_set_intfdata(intf, xbox360bb);
+    usb_set_intfdata(intf, xbox360bb);
 
-	/* Init the input stuff */
-	for (controller_i = 0; controller_i < 4; controller_i++) {
-		int name_size;
-		/* input_dev name/phys are const char *, so we need
-		 * to warn all over, or use a temporary.  */
-		char *name;
-		char *phys;
+    /* Init the input stuff */
+    for (controller_i = 0; controller_i < 4; controller_i++) {
+        int name_size;
+        /* input_dev name/phys are const char *, so we need
+         * to warn all over, or use a temporary.  */
+        char *name;
+        char *phys;
         char *uniq;
 
-		struct xbox360bb_controller *controller =
-			&(xbox360bb->controller[controller_i]);
+        struct xbox360bb_controller *controller =
+            &(xbox360bb->controller[controller_i]);
 
-		PR_KERN_LOG("making input dev %d\n", controller_i);
+        PR_KERN_LOG("making input dev %d\n", controller_i);
 
-		controller->controller_number = controller_i;
-		controller->receiver = xbox360bb;
+        controller->controller_number = controller_i;
+        controller->receiver = xbox360bb;
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
-		timer_setup(&(controller->timer_keyup), xbox360bb_keyup, 0);
+        timer_setup(&(controller->timer_keyup), xbox360bb_keyup, 0);
 #else
-		setup_timer(&(controller->timer_keyup), xbox360bb_keyup,
-			 (unsigned long)controller);
+        setup_timer(&(controller->timer_keyup), xbox360bb_keyup,
+             (unsigned long)controller);
 #endif
 
-		input_dev = input_allocate_device();
-		if (!input_dev)
-			goto fail4;
-		controller->idev = input_dev;
+        input_dev = input_allocate_device();
+        if (!input_dev)
+            goto fail4;
+        controller->idev = input_dev;
 
-		name_size = strlen(dev_options->name) +
-			    strlen(xbox360bb_controller_colors[controller_i]) +
-			    1;
-		name = kzalloc(name_size, GFP_KERNEL);
-		if (!name)
-			goto fail4;
+        name_size = strlen(dev_options->name) +
+                strlen(xbox360bb_controller_colors[controller_i]) +
+                1;
+        name = kzalloc(name_size, GFP_KERNEL);
+        if (!name)
+            goto fail4;
 
-		/* Don't bother checking returns, we explicitly sized
-		 * input_dev->name so it will fit, and the worst that
-		 * will happen with str*l*(cpy|cat) is truncation.
-		 */
-		strscpy(name, dev_options->name, name_size);
-		strlcat(name, xbox360bb_controller_colors[controller_i],
-			name_size);
+        /* Don't bother checking returns, we explicitly sized
+         * input_dev->name so it will fit, and the worst that
+         * will happen with str*l*(cpy|cat) is truncation.
+         */
+        strscpy(name, dev_options->name, name_size);
+        strlcat(name, xbox360bb_controller_colors[controller_i],
+            name_size);
 
         PR_KERN_LOG("... name='%s'\n", name);
         input_dev->name = name;
@@ -580,124 +580,133 @@ static int xbox360bb_usb_probe(struct usb_interface *intf,
         pr_info("... uniq='%s'\n", uniq);
         input_dev->uniq = uniq;
 
-		/* Right, now need to do the same with phys, more or less. */
-		/* 64 is taken from xpad.c.  I hope it's long enough. */
-		phys = kzalloc(64, GFP_KERNEL);
-		if (!phys)
-			goto fail4;
-		usb_make_path(udev, phys, 64);
-		snprintf(phys, 64, "%s/input%d", phys, controller_i);
-		PR_KERN_LOG("... phys='%s'\n", phys);
-		input_dev->phys = phys;
+        /* Right, now need to do the same with phys, more or less. */
+        /* 64 is taken from xpad.c.  I hope it's long enough. */
+        phys = kzalloc(64, GFP_KERNEL);
+        if (!phys)
+            goto fail4;
+        usb_make_path(udev, phys, 64);
+        snprintf(phys, 64, "%s/input%d", phys, controller_i);
+        PR_KERN_LOG("... phys='%s'\n", phys);
+        input_dev->phys = phys;
 
-		/* Static data */
-		input_dev->dev.parent = &intf->dev;
-		PR_KERN_LOG("... input_set_drvdata\n");
-		input_set_drvdata(input_dev, controller);
+        /* Static data */
+        input_dev->dev.parent = &intf->dev;
+        PR_KERN_LOG("... input_set_drvdata\n");
+        input_set_drvdata(input_dev, controller);
 
-		// TODO: Look into xpad's use of input_set_capability
-		// NOTE: Is input_set_capability "the new" evbit / set_bit?
+        // TODO: Look into xpad's use of input_set_capability
+        // NOTE: Is input_set_capability "the new" evbit / set_bit?
 
-		/* Set the input device vendor/product/version from
-		   the usb ones. */
-		usb_to_input_id(udev, &input_dev->id);
-		input_dev->open  = xbox360bb_input_open;
-		input_dev->close = xbox360bb_input_close;
+        /*
+         * Set the input device vendor/product/version from
+         * the usb ones.
+         */
+        usb_to_input_id(udev, &input_dev->id);
 
-		/* This is probably horribly inefficent, but it's
-		   one-time init code.  Keep it easy to read, until
-		   profiling says it's *actually* a problem. */
-		input_dev->evbit[0] = BIT_MASK(EV_KEY);
+        // HACK: Steam needs different "hardware devices"
+        //       to differentiate between controllers
+        input_dev->id.product = (0xFFFA + controller_i);
+
+        input_dev->open  = xbox360bb_input_open;
+        input_dev->close = xbox360bb_input_close;
+
+        /*
+         * This is probably horribly inefficent, but it's
+         * one-time init code.  Keep it easy to read, until
+         * profiling says it's *actually* a problem.
+         */
+        input_dev->evbit[0] = BIT_MASK(EV_KEY);
         if(!BUTTON_MODE_DPAD) {
             input_dev->evbit[0] |= BIT_MASK(EV_ABS);
         }
-		for (btn_i = 0; xbox360bb_btn[btn_i] >= 0; btn_i++)
-			set_bit(xbox360bb_btn[btn_i], input_dev->keybit);
+        for (btn_i = 0; xbox360bb_btn[btn_i] >= 0; btn_i++)
+            set_bit(xbox360bb_btn[btn_i], input_dev->keybit);
 
         if(!BUTTON_MODE_DPAD) {
             for (abs_i = 0; xbox360bb_abs[abs_i] >= 0; abs_i++) {
                 set_bit(xbox360bb_abs[abs_i], input_dev->absbit);
                 input_set_abs_params(input_dev, xbox360bb_abs[abs_i],
-                                     -1, 1, 0, 0);
+                                        -1, 1, 0, 0);
             }
         }
 
-		PR_KERN_LOG("... input_register_device\n");
-		error = input_register_device(input_dev);
-		PR_KERN_LOG("returned from input_register_device, error=%d\n",
-			error);
+        PR_KERN_LOG("... input_register_device\n");
+        error = input_register_device(input_dev);
+        PR_KERN_LOG("returned from input_register_device, error=%d\n",
+            error);
 
-		if (error)
-			goto fail4;
-	}
+        if (error)
+            goto fail4;
+    }
 
-	return 0;
+    return 0;
 
-	/* FIXME: We currently leak in failure cases numbered above
-	 * fail3. */
+    /* FIXME: We currently leak in failure cases numbered above
+     * fail3. */
 fail5:
     pr_warn("Fail5: failed to allocate uniq string!\n");
     /* need to check which bits of the input stuff have been
      * allocated, because it's all loopy. */
 fail4:
-	pr_warn("Fail4: failed to allocate name string!\n");
-	/* need to check which bits of the input stuff have been
-	 * allocated, because it's all loopy. */
+    pr_warn("Fail4: failed to allocate name string!\n");
+    /* need to check which bits of the input stuff have been
+     * allocated, because it's all loopy. */
 fail3:
-	usb_free_urb(xbox360bb->irq_in);
+    usb_free_urb(xbox360bb->irq_in);
 fail2:
-	usb_free_coherent(udev, XBOX360BB_PKT_LEN, xbox360bb->raw_data,
-		xbox360bb->idata_dma);
+    usb_free_coherent(udev, XBOX360BB_PKT_LEN, xbox360bb->raw_data,
+        xbox360bb->idata_dma);
 fail1:
-	return error;
+    return error;
 }
 
 static void xbox360bb_usb_disconnect(struct usb_interface *intf)
 {
-	struct xbox360bb *xbox360bb = usb_get_intfdata(intf);
+    struct xbox360bb *xbox360bb = usb_get_intfdata(intf);
 
-	usb_set_intfdata(intf, NULL);
-	if (!xbox360bb)
-		return;
+    usb_set_intfdata(intf, NULL);
+    if (!xbox360bb)
+        return;
 
-	input_unregister_device(xbox360bb->controller[0].idev);
-	input_unregister_device(xbox360bb->controller[1].idev);
-	input_unregister_device(xbox360bb->controller[2].idev);
-	input_unregister_device(xbox360bb->controller[3].idev);
-	/* FIXME: free the timers? */
-	usb_free_urb(xbox360bb->irq_in);
-	usb_free_coherent(xbox360bb->udev, XBOX360BB_PKT_LEN,
-			xbox360bb->raw_data, xbox360bb->idata_dma);
-	kfree(xbox360bb);
+    input_unregister_device(xbox360bb->controller[0].idev);
+    input_unregister_device(xbox360bb->controller[1].idev);
+    input_unregister_device(xbox360bb->controller[2].idev);
+    input_unregister_device(xbox360bb->controller[3].idev);
+    /* FIXME: free the timers? */
+    usb_free_urb(xbox360bb->irq_in);
+    usb_free_coherent(xbox360bb->udev, XBOX360BB_PKT_LEN,
+            xbox360bb->raw_data, xbox360bb->idata_dma);
+    kfree(xbox360bb);
 }
 
 static struct usb_device_id xbox360bb_usb_table[] = {
-	XBOX360BB_VENDOR(0x045e),	/* Microsoft XBox360 controllers */
-	{}
+    XBOX360BB_VENDOR(0x045e),    /* Microsoft XBox360 controllers */
+    {}
 };
 
 MODULE_DEVICE_TABLE(usb, xbox360bb_usb_table);
 
 static struct usb_driver xbox360bb_usb_driver = {
-	.name       = "xbox360bb",
-	.probe      = xbox360bb_usb_probe,
-	.disconnect = xbox360bb_usb_disconnect,
-	.id_table   = xbox360bb_usb_table
+    .name       = "xbox360bb",
+    .probe      = xbox360bb_usb_probe,
+    .disconnect = xbox360bb_usb_disconnect,
+    .id_table   = xbox360bb_usb_table
 };
 
 static int __init xbox360bb_usb_init(void)
 {
-	int result = usb_register(&xbox360bb_usb_driver);
+    int result = usb_register(&xbox360bb_usb_driver);
 
-	if (result == 0)
-		pr_info(DRIVER_DESC "\n");
+    if (result == 0)
+        pr_info(DRIVER_DESC "\n");
 
-	return result;
+    return result;
 }
 
 static void __exit xbox360bb_usb_exit(void)
 {
-	usb_deregister(&xbox360bb_usb_driver);
+    usb_deregister(&xbox360bb_usb_driver);
 }
 
 module_init(xbox360bb_usb_init);
