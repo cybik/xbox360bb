@@ -108,9 +108,8 @@ static const struct xbox360bb_dev_options {
     u16 idProduct;
     char *name;
     char *uniq_base;
-    u8 xtype;
 } xbox360bb_dev_options[] = {
-    { 0x045e, 0x02a0, "Microsoft XBox360 Big Button IR", "045e02a0", XTYPE_360_SCENEIT },
+    { 0x045e, 0x02a0, "Microsoft XBox360 Big Button IR", "045e02a0" },
     { },
 };
 
