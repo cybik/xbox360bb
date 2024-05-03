@@ -65,9 +65,10 @@
  * - Improved code style
  * 
  * This is a FURTHER MODIFIED version by Renaud Lepage with the following:
- * - Simple style fixes
+ * - Style fixes
  * - Kernel 6.8.x Compatibility
- * - TODO: Steam support
+ * - Hacks enabling Steam support
+ * - Removing ABS_* axes in favor of simple DPAD interpretation
  *
  */
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
@@ -79,19 +80,7 @@
 #include <linux/export.h>
 #include <linux/module.h>
 
-// Direct import from xpad
-#define XTYPE_XBOX        0
-#define XTYPE_XBOX360     1
-#define XTYPE_XBOX360W    2
-#define XTYPE_XBOXONE     3
-#define XTYPE_UNKNOWN     4
-
-// Quirky Controller Types
-
-// SceneIt Party Game Controller Set
-#define XTYPE_360_SCENEIT 0x11
-
-#define DRIVER_DESC "XBox360 Big Button (Scene It) Driver"
+#define DRIVER_DESC "Microsoft XBox360 Big Button IR Driver"
 
 /* No idea where this came from, it's copped from xpad.c */
 #define XBOX360BB_PKT_LEN 32
@@ -109,20 +98,8 @@ static const struct xbox360bb_dev_options {
     char *name;
     char *uniq_base;
 } xbox360bb_dev_options[] = {
-    { 0x045e, 0x02a0, "Microsoft XBox360 Big Button IR", "045e02a0" },
+    { 0x045e, 0x02a0, "X360 Big Button", "045e02a0" },
     { },
-};
-
-static bool BUTTON_MODE_DPAD = false;
-
-#define X_AXIS ABS_X
-#define Y_AXIS ABS_Y
-
-// TODO: absolute x/y or dpad? maybe a module load option?
-static const signed short xbox360bb_abs[] = {
-    X_AXIS,
-    Y_AXIS,
-    -1
 };
 
 static const signed short xbox360bb_btn[] = {
@@ -131,7 +108,7 @@ static const signed short xbox360bb_btn[] = {
     BTN_SELECT, /* 0x20 */
     BTN_START,  /* 0x10 */
 
-    /* DPAD mode? */
+    /* DPAD mode for the "axes" on the buzzer-type button */
     BTN_DPAD_RIGHT, /* Right       0x08 */
     BTN_DPAD_LEFT,  /* Left        0x04 */
     BTN_DPAD_DOWN,  /* Down        0x02 */
@@ -148,7 +125,7 @@ static const signed short xbox360bb_btn[] = {
      * normal controller, you simply can't hit all the directions at
      * the same time, and on a dance controller, you can only if
      * you have four feet.
-     * There's no clear button defintion for this use, so we use
+     * There's no clear button definition for this use, so we use
      * thumbr.
      * In any case, it's byte 4, 0x08.
      */
@@ -212,8 +189,10 @@ struct xbox360bb {
 
     /* input side */
 
-    /* the number of input devices which are open.  Should always
-       be between 0 and 4 */
+    /*
+     * The number of input devices which are open.  Should always
+     * be between 0 and 4
+     */
     /* FIXME should have locking? */
     int idev_open_count;
 
@@ -237,7 +216,7 @@ struct xbox360bb {
  *
  */
 static void xbox360bb_keydown(struct xbox360bb_controller *controller,
-                  int button, int val)
+                                int button, int val)
 {
     input_report_key(controller->idev, button, val);
 }
@@ -248,19 +227,11 @@ static void xbox360bb_keydown(struct xbox360bb_controller *controller,
  * we haven't had a report at all for this controller in some time, so
  * we should consider *all* keys that it had down as up.
  */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 static void xbox360bb_keyup(struct timer_list * t)
 {
     int i;
     struct xbox360bb_controller *controller =
         (struct xbox360bb_controller *)from_timer(controller, t, timer_keyup);
-#else
-static void xbox360bb_keyup(unsigned long user_data)
-{
-    int i;
-    struct xbox360bb_controller *controller =
-        (struct xbox360bb_controller *)user_data;
-#endif
     PR_KERN_LOG("timer callback for controller %d\n",
         controller->controller_number);
 
@@ -268,13 +239,6 @@ static void xbox360bb_keyup(unsigned long user_data)
      * down keys at once? */
     for (i = 0; xbox360bb_btn[i] >= 0; i++)
         input_report_key(controller->idev, xbox360bb_btn[i], 0);
-
-    if(!BUTTON_MODE_DPAD) {
-        /* Also reset the X and Y axis */
-        for (i = 0; xbox360bb_abs[i] >= 0; i++) {
-            input_report_abs(controller->idev, xbox360bb_abs[i], 0);
-        }
-    }
 
     input_sync(controller->idev);
     controller->last_report[0] = 0;
@@ -327,29 +291,17 @@ static void xbox360bb_usb_process_packet(struct xbox360bb *xbox360bb, u16 cmd,
     controller->last_report[0] = data[3];
     controller->last_report[1] = data[4];
 
-    if(BUTTON_MODE_DPAD) {
-        int u, d, l, r = 0;
-        pr_debug("U %d D %d L %d R %d\n",
-                 (u = (data[3] & 0x01)),
-                 (d = (data[3] & 0x02)),
-                 (l = (data[3] & 0x04)),
-                 (r = (data[3] & 0x08))
-        );
-        xbox360bb_keydown(controller, BTN_DPAD_UP, (data[3] & 0x01));
-        xbox360bb_keydown(controller, BTN_DPAD_DOWN, (data[3] & 0x02));
-        xbox360bb_keydown(controller, BTN_DPAD_LEFT, (data[3] & 0x04));
-        xbox360bb_keydown(controller, BTN_DPAD_RIGHT, (data[3] & 0x08));
-    } else {
-        signed int x = 0;
-        signed int y = 0;
-        /* dpad as absolute axis... */
-        y = (data[3] & 0x01) ?  1 : y;
-        y = (data[3] & 0x02) ? -1 : y;
-        x = (data[3] & 0x04) ? -1 : x;
-        x = (data[3] & 0x08) ?  1 : x;
-        input_report_abs(controller->idev, X_AXIS, x);
-        input_report_abs(controller->idev, Y_AXIS, y);
-    }
+    int u, d, l, r = 0;
+    pr_debug("U %d D %d L %d R %d\n",
+            (u = (data[3] & 0x01)),
+            (d = (data[3] & 0x02)),
+            (l = (data[3] & 0x04)),
+            (r = (data[3] & 0x08))
+    );
+    xbox360bb_keydown(controller, BTN_DPAD_UP, (data[3] & 0x01));
+    xbox360bb_keydown(controller, BTN_DPAD_DOWN, (data[3] & 0x02));
+    xbox360bb_keydown(controller, BTN_DPAD_LEFT, (data[3] & 0x04));
+    xbox360bb_keydown(controller, BTN_DPAD_RIGHT, (data[3] & 0x08));
 
     /* start/back buttons */
     xbox360bb_keydown(controller, BTN_START,  data[3] & 0x10);
@@ -474,7 +426,7 @@ static int xbox360bb_usb_probe(struct usb_interface *intf,
 
     int options_i;
     int controller_i;
-    int btn_i, abs_i;
+    int btn_i;
     int error = -ENOMEM;
 
     PR_KERN_LOG("xbox360bb_usb_probe vendor=0x%x, product=0x%x\n",
@@ -542,12 +494,7 @@ static int xbox360bb_usb_probe(struct usb_interface *intf,
         controller->controller_number = controller_i;
         controller->receiver = xbox360bb;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
         timer_setup(&(controller->timer_keyup), xbox360bb_keyup, 0);
-#else
-        setup_timer(&(controller->timer_keyup), xbox360bb_keyup,
-             (unsigned long)controller);
-#endif
 
         input_dev = input_allocate_device();
         if (!input_dev)
@@ -578,7 +525,7 @@ static int xbox360bb_usb_probe(struct usb_interface *intf,
         }
         snprintf(uniq, (sizeof(dev_options->uniq_base) + 8),"%s%d", dev_options->uniq_base, controller_i);
 
-        pr_info("... uniq='%s'\n", uniq);
+        PR_KERN_LOG("... uniq='%s'\n", uniq);
         input_dev->uniq = uniq;
 
         /* Right, now need to do the same with phys, more or less. */
@@ -620,15 +567,6 @@ static int xbox360bb_usb_probe(struct usb_interface *intf,
         input_dev->evbit[0] = BIT_MASK(EV_KEY);
         for (btn_i = 0; xbox360bb_btn[btn_i] >= 0; btn_i++) {
             input_set_capability(input_dev, EV_KEY, xbox360bb_btn[btn_i]);
-        }
-
-        if(!BUTTON_MODE_DPAD) {
-            input_dev->evbit[0] |= BIT_MASK(EV_ABS);
-            for (abs_i = 0; xbox360bb_abs[abs_i] >= 0; abs_i++) {
-                //set_bit(xbox360bb_abs[abs_i], input_dev->absbit);
-                input_set_abs_params(input_dev, xbox360bb_abs[abs_i],
-                                        -32767, 32767, 0, 0);
-            }
         }
 
         PR_KERN_LOG("... input_register_device\n");
