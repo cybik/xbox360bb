@@ -1,20 +1,23 @@
-obj-m := \
-	./src/xbox360bb.o
+X360BB_MODULE=xbox360bb
+X360BB_VERSION=0.0.1
+DKMS_FLAGS= -m $(X360BB_MODULE) -v $(X360BB_VERSION) --sourcetree "`pwd`/.." $(USER_DKMS_FLAGS)
+
+obj-m += src/
 
 CURRENT := $(shell uname -r)
 PWD := $(shell pwd)
 KDIR := /lib/modules/$(CURRENT)/build
 
-all: default
+all: modules
 
-default:
-	$(MAKE) -C $(KDIR) M=$(PWD) modules
+modules:
+	$(MAKE) LLVM=1 -C $(KDIR) M=$(PWD) modules
 
 install:
-	make -C $(KDIR) M=$(PWD) modules_install
+	$(MAKE) LLVM=1 -C $(KDIR) M=$(PWD) modules_install
 
 clean:
-	make -C $(KDIR) M=$(PWD) clean
+	$(MAKE) LLVM=1 -C $(KDIR) M=$(PWD) clean
 
 # Package version and name from dkms.conf
 # Copied over from other works

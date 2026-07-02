@@ -3,10 +3,9 @@
  *
  * This is for the controllers that come with game-show style games
  * for the XBox360.  They consist of an IR reciver with a USB cable,
- * marked on the bottom "Microsoft XBox360 Big Button IR" (fixme:
- * verify), and four seperate controller devices, each with a
- * different colour scheme: green, red, blue, and yellow (in that
- * order).
+ * marked on the bottom "Microsoft XBox360 Big Button IR" (fixme: verify),
+ * and four seperate controller devices, each with a different colour
+ * scheme: green, red, blue, and yellow (in that order).
  *
  * To the best of my knowledge, these haven't been publicly reverse
  * engineered before.  The protocol is pretty simple, and is explained
@@ -29,7 +28,7 @@
  *
  * Copyright 2009 James Mastros <jam...@mastros.biz>
  * Copyright 2011-2016 Michael Farrell <micolous+lk@gmail.com>
- * Copyright 2024- Renaud Lepage <root+x360bbkm@cybik.moe>
+ * Copyright 2024- Renaud Lepage <cybik+x360bbkm@cybik.moe>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -46,10 +45,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
  * This driver is based on:
- *  - the xpad driver -- general input & usb, some xbox
- *                    -- drivers/input/joystick/xpad.c
- *  - winbond-cir -- repeat handling
- *                -- drivers/input/misc/winbond-cir.c
+ *  - the xpad driver
+ *    -- general input & usb, some xbox
+ *    -- drivers/input/joystick/xpad.c
+ *  - winbond-cir
+ *    -- repeat handling
+ *    -- drivers/input/misc/winbond-cir.c
  *
  * TODO:
  *  - smarter support for repeat.
@@ -66,11 +67,13 @@
  * - Improved code style
  * 
  * This is a FURTHER MODIFIED variant by Renaud Lepage
- * <root+x360bbkm@cybik.moe>:
- * - Kernel 6.8.x Compatibility
- * - Hacks enabling Steam support (Device ID creative license)
- * - Removing ABS_* axes in favor of a simple DPAD implementation
- * - Style fixes
+ * <cybik+x360bbkm@cybik.moe>:
+ *   - Kernel 7.x.x Compatibility
+ *   - Hacks enabling Steam support (Device ID creative license)
+ *   - Removing ABS_* axes in favor of a simple DPAD implementation
+ *   - Style fixes
+ *
+ * Latest update year: 2026
  *
  */
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
@@ -78,7 +81,6 @@
 #include <linux/kernel.h>
 #include <linux/usb/input.h>
 #include <linux/slab.h>
-#include <linux/export.h>
 #include <linux/module.h>
 
 #define DRIVER_DESC "Microsoft XBox360 Big Button IR Driver"
@@ -229,8 +231,8 @@ static void xbox360bb_btn_state(struct xbox360bb_controller *controller,
 static void xbox360bb_keys_release(struct timer_list * t)
 {
     int i;
-    struct xbox360bb_controller *controller =
-        (struct xbox360bb_controller *)from_timer(controller, t, timer_keyup);
+    // (struct xbox360bb_controller *) -> macro autotyped
+    struct xbox360bb_controller *controller = timer_container_of(controller, t, timer_keyup);
     PR_KERN_LOG("timer callback for controller %d\n",
         controller->controller_number);
 

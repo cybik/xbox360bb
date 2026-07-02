@@ -15,7 +15,7 @@ add_definitions(-D__KERNEL__ -DMODULE)
 # this is needed in order for CLion IDE to provide syntax highlighting
 # this is independent from the actual kernel object that is built
 add_executable(dummy
-        src/xbox360bb.c
+    src/xbox360bb.c
 )
 
 # CLion IDE will find symbols from <linux/*>
